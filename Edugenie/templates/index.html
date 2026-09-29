@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduGenie - AI Powered Learning Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <h1>Welcome to EduGenie 🎓✨</h1>
+            <p>Your personal AI tutor for learning support!</p>
+        </header>
+
+        <!-- Main Content Cards -->
+        <main class="modules-container">
+            
+            <!-- 1. Q&A Module -->
+            <section class="module-card">
+                <form id="qaForm">
+                    <label for="question"><strong>Ask EduGenie a Question:</strong></label>
+                    <div class="input-group">
+                        <input type="text" id="question" name="question" placeholder="Why is the sky blue?" required>
+                        <button type="submit" id="qaBtn" class="btn btn-primary">Get Answer</button>
+                    </div>
+                </form>
+                <div id="qaResult" class="output hidden"></div>
+            </section>
+
+            <!-- 2. Explanation Module -->
+            <section class="module-card">
+                <form id="explainForm">
+                    <label for="topic"><strong>Need an Explanation?</strong></label>
+                    <div class="input-group">
+                        <input type="text" id="topic" name="topic" placeholder="Photosynthesis" required>
+                        <button type="submit" id="explainBtn" class="btn btn-primary">Explain</button>
+                    </div>
+                </form>
+                <div id="explanationResult" class="output hidden"></div>
+            </section>
+
+            <!-- 3. Summary Module -->
+            <section class="module-card">
+                <form id="summaryForm">
+                    <label for="summaryText"><strong>Summarize a Paragraph:</strong></label>
+                    <div class="input-group">
+                        <textarea id="summaryText" name="summaryText" rows="3" placeholder="Paste long content to summarize" required></textarea>
+                        <button type="submit" id="summaryBtn" class="btn btn-primary">Summarize</button>
+                    </div>
+                </form>
+                <div id="summaryResult" class="output hidden"></div>
+            </section>
+
+            <!-- 4. Quiz Module -->
+            <section class="module-card">
+                <form id="quizForm">
+                    <label for="quizText"><strong>Generate a Quiz:</strong></label>
+                    <div class="input-group">
+                        <input type="text" id="quizText" name="quizText" placeholder="Solar System or Pythagoras theorem" required>
+                        <button type="submit" id="quizBtn" class="btn btn-primary">Generate Quiz</button>
+                    </div>
+                </form>
+                <div id="quizResult" class="output hidden"></div>
+            </section>
+
+            <!-- 5. Learning Recommendations Module -->
+            <section class="module-card">
+                <form id="recommendationsForm">
+                    <label for="learningTopic"><strong>Get Learning Recommendations:</strong></label>
+                    <div class="input-group">
+                        <input type="text" id="learningTopic" name="learningTopic" placeholder="e.g. Linear Regression, SQL, Web Development" required>
+                        <button type="submit" id="recommendBtn" class="btn btn-primary">Get Recommendations</button>
+                    </div>
+                </form>
+                <div id="recommendationResult" class="output hidden"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Frontend Interactive Logic -->
+    <script>
+        // Helper to show loader
+        function showLoader(elementId) {
+            const el = document.getElementById(elementId);
+            el.classList.remove('hidden');
+            el.innerHTML = '<div class="loader-container"><div class="spinner"></div><span>EduGenie is thinking...</span></div>';
+        }
+
+        // Helper to display error
+        function showError(elementId, msg) {
+            const el = document.getElementById(elementId);
+            el.classList.remove('hidden');
+            el.innerHTML = `<div class="error-msg">⚠️ ${msg}</div>`;
+        }
+
+        // 1. Q&A Handler
+        document.getElementById('qaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const question = document.getElementById('question').value.trim();
+            if (!question) return;
+
+            showLoader('qaResult');
+            try {
+                const res = await fetch(`/qa?question=${encodeURIComponent(question)}`);
+                const data = await res.json();
+                const resultDiv = document.getElementById('qaResult');
+                resultDiv.classList.remove('hidden');
+                
+                if (data.answer) {
+                    resultDiv.innerHTML = `
+                        <div class="result-box">
+                            <div class="result-title">Answer:</div>
+                            <div class="result-body">${marked.parse(data.answer)}</div>
+                        </div>`;
+                } else {
+                    showError('qaResult', data.error || 'Failed to get answer.');
+                }
+            } catch (err) {
+                showError('qaResult', err.message);
+            }
+        });
+
+        // 2. Explanation Handler
+        document.getElementById('explainForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const topic = document.getElementById('topic').value.trim();
+            if (!topic) return;
+
+            showLoader('explanationResult');
+            try {
+                const res = await fetch('/explain', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topic })
+                });
+                const data = await res.json();
+                const resultDiv = document.getElementById('explanationResult');
+                resultDiv.classList.remove('hidden');
+
+                if (data.explanation) {
+                    resultDiv.innerHTML = `
+                        <div class="result-box">
+                            <div class="result-title">Explanation:</div>
+                            <div class="result-body">${marked.parse(data.explanation)}</div>
+                        </div>`;
+                } else {
+                    showError('explanationResult', data.error || 'Failed to generate explanation.');
+                }
+            } catch (err) {
+                showError('explanationResult', err.message);
+            }
+        });
+
+        // 3. Summary Handler
+        document.getElementById('summaryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const text = document.getElementById('summaryText').value.trim();
+            if (!text) return;
+
+            showLoader('summaryResult');
+            try {
+                const res = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await res.json();
+                const resultDiv = document.getElementById('summaryResult');
+                resultDiv.classList.remove('hidden');
+
+                if (data.summary) {
+                    resultDiv.innerHTML = `
+                        <div class="result-box">
+                            <div class="result-title">Summary:</div>
+                            <div class="result-body">${marked.parse(data.summary)}</div>
+                        </div>`;
+                } else {
+                    showError('summaryResult', data.error || 'Failed to generate summary.');
+                }
+            } catch (err) {
+                showError('summaryResult', err.message);
+            }
+        });
+
+        // 4. Quiz Handler
+        let currentQuizData = [];
+        document.getElementById('quizForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const text = document.getElementById('quizText').value.trim();
+            if (!text) return;
+
+            showLoader('quizResult');
+            try {
+                const res = await fetch('/quiz', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await res.json();
+                const resultDiv = document.getElementById('quizResult');
+                resultDiv.classList.remove('hidden');
+
+                if (!res.ok || data.error) {
+                    showError('quizResult', data.error || 'Quiz generation failed. Please try again.');
+                    return;
+                }
+
+                if (data.quiz && Array.isArray(data.quiz)) {
+                    currentQuizData = data.quiz;
+                    let html = '<div class="quiz-container"><div class="result-title">Quiz:</div>';
+                    
+                    data.quiz.forEach((q, qIndex) => {
+                        html += `
+                            <div class="quiz-question-card" id="qCard_${qIndex}">
+                                <div class="question-text"><strong>Q${qIndex + 1}: ${escapeHtml(q.question)}</strong></div>
+                                <div class="options-list">`;
+                        
+                        (q.options || []).forEach((opt, optIndex) => {
+                            html += `
+                                <label class="quiz-option-label" for="q_${qIndex}_opt_${optIndex}">
+                                    <input type="radio" name="q_${qIndex}" id="q_${qIndex}_opt_${optIndex}" value="${escapeHtml(opt)}">
+                                    <span>${escapeHtml(opt)}</span>
+                                </label>`;
+                        });
+
+                        html += `
+                                </div>
+                                <button type="button" class="btn btn-secondary check-answer-btn" onclick="checkAnswer(${qIndex})">Check Answer</button>
+                                <div id="feedback_${qIndex}" class="feedback-msg"></div>
+                            </div>`;
+                    });
+
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    showError('quizResult', 'Could not generate quiz. Please try again.');
+                }
+            } catch (err) {
+                showError('quizResult', err.message);
+            }
+        });
+
+        // Check Answer logic for Quiz
+        window.checkAnswer = function(qIndex) {
+            const selected = document.querySelector(`input[name="q_${qIndex}"]:checked`);
+            const feedbackDiv = document.getElementById(`feedback_${qIndex}`);
+            
+            if (!selected) {
+                feedbackDiv.innerHTML = '<span class="text-warning">Please select an option first!</span>';
+                return;
+            }
+
+            const selectedValue = selected.value.trim();
+            const correctAnswer = (currentQuizData[qIndex]?.answer || '').trim();
+
+            if (selectedValue === correctAnswer || selectedValue.toLowerCase() === correctAnswer.toLowerCase()) {
+                feedbackDiv.innerHTML = '<div class="correct-badge">✅ Correct!</div>';
+            } else {
+                feedbackDiv.innerHTML = `<div class="incorrect-badge">❌ Incorrect. Correct answer: <strong>${escapeHtml(correctAnswer)}</strong></div>`;
+            }
+        };
+
+        // 5. Learning Recommendations Handler
+        document.getElementById('recommendationsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const topic = document.getElementById('learningTopic').value.trim();
+            if (!topic) return;
+
+            showLoader('recommendationResult');
+            try {
+                const res = await fetch(`/learn/recommendations?topic=${encodeURIComponent(topic)}`);
+                const data = await res.json();
+                const resultDiv = document.getElementById('recommendationResult');
+                resultDiv.classList.remove('hidden');
+
+                if (data.recommendation) {
+                    resultDiv.innerHTML = `
+                        <div class="result-box">
+                            <div class="result-title">Learning Recommendations for "${escapeHtml(data.topic)}":</div>
+                            <div class="result-body markdown-body">${marked.parse(data.recommendation)}</div>
+                        </div>`;
+                } else {
+                    showError('recommendationResult', data.error || 'Failed to get recommendations.');
+                }
+            } catch (err) {
+                showError('recommendationResult', err.message);
+            }
+        });
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
